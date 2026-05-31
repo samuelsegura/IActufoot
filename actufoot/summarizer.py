@@ -2,7 +2,9 @@ import google.genai as genai
 
 _SYSTEM = (
     "Résume le texte en 3 points maximum, en français, de manière factuelle. "
-    "Commence chaque point par •. Pas d'introduction ni de conclusion."
+    "Commence chaque point par •. Pas d'introduction ni de conclusion. "
+    "Si l'article mentionne l'Olympique de Marseille (OM) ou le FC Barcelone (Barça), "
+    "priorise ces informations dans le résumé."
 )
 
 
