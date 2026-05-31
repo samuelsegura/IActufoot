@@ -7,3 +7,6 @@ __pycache__/
 # Tampons pilotage ↔ exécutant (scratch)
 pilote.md
 executant.md
+
+# Scripts de test manuel
+test_footmercato.py
