@@ -35,7 +35,7 @@ def run_cycle(conn: sqlite3.Connection, cfg: dict, is_cold: bool) -> None:
                     body = fetch_article_body(article_id, article["slug"])
                     bullets = summarize(body, cfg["GEMINI_API_KEY"])
                     url = f"https://www.footmercato.net/a{article_id}-{article['slug']}"
-                    text = f"{article['title']}\n{url}\n\n{bullets}"
+                    text = f"{article['title']}\n\n{bullets}\n\n{url}"
                     send_message(cfg["TELEGRAM_BOT_TOKEN"], cfg["TELEGRAM_CHAT_ID"], text)
                     mark_seen(conn, article_id)
                     log(f"{team_name} — envoyé : {article['title']}")
