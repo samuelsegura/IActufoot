@@ -47,8 +47,8 @@ def run_cycle(conn: sqlite3.Connection, cfg: dict, is_cold: bool) -> None:
 
 def main() -> None:
     cfg = config.load()
-    init_db()
-    conn = sqlite3.connect("data/seen.db")
+    init_db(cfg["DB_PATH"])
+    conn = sqlite3.connect(cfg["DB_PATH"])
     log("actufoot démarré")
     while True:
         try:
