@@ -1,0 +1,13 @@
+[project]
+name = "actufoot"
+version = "0.1.0"
+description = "Veille Footmercato (OM/Barça) : résumé IA + push Telegram"
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.32",
+    "google-genai>=2.7",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
