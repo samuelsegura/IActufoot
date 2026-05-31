@@ -11,3 +11,5 @@ executant.md
 # Scripts de test manuel
 test_footmercato.py
 test_store.py
+test_summarizer.py
+test_telegram.py
