@@ -1,0 +1,9 @@
+.env
+data/
+__pycache__/
+*.pyc
+.venv/
+
+# Tampons pilotage ↔ exécutant (scratch)
+pilote.md
+executant.md
