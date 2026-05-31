@@ -7,6 +7,7 @@ from actufoot.footmercato import fetch_article_body, list_recent_articles
 from actufoot.store import init_db, is_seen, mark_seen, seed_seen
 from actufoot.summarizer import summarize
 from actufoot.telegram import send_message
+from actufoot.utils import retry
 
 TEAMS = [
     ("OM", "4523010864861042854"),
@@ -22,7 +23,7 @@ def log(msg: str) -> None:
 def run_cycle(conn: sqlite3.Connection, cfg: dict, is_cold: bool) -> None:
     for team_name, team_id in TEAMS:
         try:
-            articles = list_recent_articles(team_id)
+            articles = retry(lambda: list_recent_articles(team_id))
             if is_cold:
                 seed_seen(conn, [str(a["id"]) for a in articles])
                 log(f"{team_name} — cold start, {len(articles)} articles seedés")
@@ -32,17 +33,17 @@ def run_cycle(conn: sqlite3.Connection, cfg: dict, is_cold: bool) -> None:
                     article_id = str(article["id"])
                     if is_seen(conn, article_id):
                         continue
-                    body = fetch_article_body(article_id, article["slug"])
-                    bullets = summarize(body, cfg["GEMINI_API_KEY"])
+                    body = retry(lambda: fetch_article_body(article_id, article["slug"]))
+                    bullets = retry(lambda: summarize(body, cfg["GEMINI_API_KEY"]))
                     url = f"https://www.footmercato.net/a{article_id}-{article['slug']}"
                     text = f"{article['title']}\n\n{bullets}\n\n{url}"
-                    send_message(cfg["TELEGRAM_BOT_TOKEN"], cfg["TELEGRAM_CHAT_ID"], text)
+                    retry(lambda: send_message(cfg["TELEGRAM_BOT_TOKEN"], cfg["TELEGRAM_CHAT_ID"], text))
                     mark_seen(conn, article_id)
                     log(f"{team_name} — envoyé : {article['title']}")
                 except Exception as e:
-                    log(f"{team_name} — erreur article {article.get('id')}: {e}")
+                    log(f"[ERROR] {team_name} — article {article.get('id')} abandonné après 3 tentatives : {type(e).__name__}: {e}")
         except Exception as e:
-            log(f"{team_name} — erreur équipe : {e}")
+            log(f"[ERROR] {team_name} — équipe abandonnée après 3 tentatives : {type(e).__name__}: {e}")
 
 
 def main() -> None:
@@ -56,5 +57,5 @@ def main() -> None:
             is_cold = cur.fetchone()[0] == 0
             run_cycle(conn, cfg, is_cold)
         except Exception as e:
-            log(f"erreur cycle : {e}")
+            log(f"[ERROR] erreur cycle : {type(e).__name__}: {e}")
         time.sleep(cfg["POLL_INTERVAL_MINUTES"] * 60)
