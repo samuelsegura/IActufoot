@@ -8,6 +8,9 @@ dependencies = [
     "google-genai>=2.7",
 ]
 
+[project.scripts]
+actufoot = "actufoot.main:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
