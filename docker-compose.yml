@@ -6,4 +6,7 @@ services:
     environment:
       - DB_PATH=/data/seen.db
     volumes:
-      - ./data:/data
+      - actufoot_data:/data
+
+volumes:
+  actufoot_data:
