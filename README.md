@@ -1,6 +1,6 @@
 # actufoot
 
-Autonomous bot that monitors new articles on Footmercato for OM and Barça, summarizes them in 3 bullet points via Gemini AI, and pushes them to a Telegram channel.
+Autonomous bot that monitors new articles on Footmercato for OM and Barça, summarizes them (short summary + every direct quote, verbatim) via Gemini AI, and pushes them to a Telegram channel.
 
 ## Prerequisites
 
