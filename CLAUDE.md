@@ -17,8 +17,10 @@ Démon Python tournant en boucle, packagé en conteneur Docker, déployé sur VP
 
 - **Python** (≥ 3.12)
 - **Docker + docker-compose**, conteneur `restart: unless-stopped`
-- **LLM** : Google Gemini Flash, palier gratuit (`GEMINI_API_KEY`). SDK
-  `google-genai` — vérifier nom/version courants via `ctx7` avant de pinner.
+- **LLM** : Google Gemini, palier gratuit (`GEMINI_API_KEY`), modèle lu dans
+  `GEMINI_MODEL` (défaut `gemini-4-hydrogen`). SDK `google-genai` — vérifier
+  nom/version courants via `ctx7` avant de pinner. Pas de `temperature` (1.0
+  recommandé par Google pour Gemini 3+).
 - **Dédup** : SQLite (stdlib `sqlite3`), fichier persisté dans un volume Docker.
 - **Telegram** : appel HTTP direct à la Bot API (`sendMessage`), pas de lib.
 
@@ -45,8 +47,13 @@ Package `actufoot/`, modules à responsabilité isolée :
     (id, title, slug).
   - contenu d'un article : `GET https://www.footmercato.net/a{id}-{slug}`, extrait
     le `articleBody` du `<script type="application/ld+json">`.
-- `summarizer.py` — résumé Gemini en 3 bullets max, français, factuel.
-- `telegram.py` — envoi du message formaté (titre lié + bullets + source).
+- `summarizer.py` — résumé Gemini en français, factuel : « • Résumé » (1 à 3
+  phrases, la nouveauté seulement) + « • Citations » (toutes les citations
+  directes, mot pour mot, auteur = celui qui parle). `condense_quotes` : second
+  appel qui condense les citations si le message dépasse la limite.
+- `telegram.py` — message unique en HTML : titre cliquable (lien) + corps.
+  Limite 4096 caractères mesurée sur le texte rendu ; jamais de découpe, jamais
+  d'échec pour longueur (budget au modèle → condensation → troncature).
 - `store.py` — SQLite : `is_seen(id)`, `mark_seen(id)`, `seed_seen(ids)`.
 - `main.py` — boucle : par équipe → liste → filtre nouveaux → fetch body →
   résumé → envoi → `mark_seen`, puis `sleep(POLL_INTERVAL_MINUTES)`.
@@ -71,3 +78,4 @@ Package `actufoot/`, modules à responsabilité isolée :
 - `TELEGRAM_CHAT_ID`
 - `GEMINI_API_KEY`
 - `POLL_INTERVAL_MINUTES` (défaut 15)
+- `GEMINI_MODEL` (défaut `gemini-4-hydrogen`)

@@ -13,5 +13,6 @@ def load() -> dict:
         "TELEGRAM_CHAT_ID": require("TELEGRAM_CHAT_ID"),
         "GEMINI_API_KEY": require("GEMINI_API_KEY"),
         "POLL_INTERVAL_MINUTES": int(os.environ.get("POLL_INTERVAL_MINUTES", "15")),
+        "GEMINI_MODEL": os.environ.get("GEMINI_MODEL") or "gemini-4-hydrogen",
         "DB_PATH": os.environ.get("DB_PATH", "data/seen.db"),
     }

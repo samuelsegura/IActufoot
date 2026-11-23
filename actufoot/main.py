@@ -5,8 +5,8 @@ from datetime import datetime
 from actufoot import config
 from actufoot.footmercato import fetch_article_body, list_recent_articles
 from actufoot.store import init_db, is_seen, mark_seen, seed_seen
-from actufoot.summarizer import summarize
-from actufoot.telegram import send_message
+from actufoot.summarizer import condense_quotes, summarize
+from actufoot.telegram import MAX_LEN, format_message, send_message, truncate_body, visible_length
 from actufoot.utils import retry
 
 TEAMS = [
@@ -18,6 +18,26 @@ TEAMS = [
 def log(msg: str) -> None:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{ts}] {msg}", flush=True)
+
+
+_MARGIN = 100  # marge de sécurité : un modèle compte mal les caractères
+
+
+def build_text(title: str, url: str, article_body: str, cfg: dict) -> str:
+    """Résumé + citations, garanti ≤ 4096 caractères rendus. Ne lève pas pour cause de longueur."""
+    key, model = cfg["GEMINI_API_KEY"], cfg["GEMINI_MODEL"]
+    budget = MAX_LEN - len(title) - 2 - _MARGIN
+    body = retry(lambda: summarize(article_body, key, model))
+    if visible_length(title, body) > MAX_LEN:
+        log(f"[WARN] message trop long ({visible_length(title, body)}) — condensation des citations")
+        try:
+            body = retry(lambda: condense_quotes(body, key, model, budget))
+        except Exception as e:
+            log(f"[WARN] condensation échouée : {type(e).__name__}: {e}")
+    if visible_length(title, body) > MAX_LEN:
+        log(f"[WARN] encore trop long ({visible_length(title, body)}) — troncature")
+        body = truncate_body(body, MAX_LEN - len(title) - 2)
+    return format_message(title, url, body)
 
 
 def run_cycle(conn: sqlite3.Connection, cfg: dict, is_cold: bool) -> None:
@@ -34,9 +54,8 @@ def run_cycle(conn: sqlite3.Connection, cfg: dict, is_cold: bool) -> None:
                     if is_seen(conn, article_id):
                         continue
                     body = retry(lambda: fetch_article_body(article_id, article["slug"]))
-                    bullets = retry(lambda: summarize(body, cfg["GEMINI_API_KEY"]))
                     url = f"https://www.footmercato.net/a{article_id}-{article['slug']}"
-                    text = f"{article['title']}\n\n{bullets}\n\n{url}"
+                    text = build_text(article["title"], url, body, cfg)
                     retry(lambda: send_message(cfg["TELEGRAM_BOT_TOKEN"], cfg["TELEGRAM_CHAT_ID"], text))
                     mark_seen(conn, article_id)
                     log(f"{team_name} — envoyé : {article['title']}")
