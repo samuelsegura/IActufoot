@@ -1,4 +1,4 @@
-import google.genai as genai
+from actufoot.cascade import Cascade
 
 _SYSTEM = (
     "Tu résumes un article de football en français, de manière factuelle, pour un message Telegram. "
@@ -13,6 +13,10 @@ _SYSTEM = (
     "- Reprends TOUTES les citations directes de l'article, mot pour mot et en entier : "
     "jamais une reformulation, jamais un extrait choisi.\n"
     "- L'auteur est la personne qui parle, pas le média qui a recueilli ses propos.\n"
+    "- Une citation, ce sont des PROPOS TENUS par une personne identifiée (joueur, entraîneur, dirigeant, "
+    "arbitre…), d'au moins une phrase. Ne sont PAS des citations : un mot ou une expression isolés entre "
+    "guillemets, un qualificatif ou un titre attribué à un média, un surnom. Si un tel mot compte pour "
+    "comprendre l'article, il va dans le résumé, jamais dans les citations.\n"
     "- Une citation par ligne, entre guillemets droits \", suivie de « — » et du nom de l'auteur.\n"
     "- S'il n'y a aucune citation directe dans l'article, n'écris pas le point « Citations » du tout.\n"
     "- Les citations sont toujours complètes, sans aucune coupe ni reformulation, quelle que soit leur longueur."
@@ -29,19 +33,11 @@ _CONDENSE = (
 )
 
 
-def _generate(system: str, contents: str, api_key: str, model: str) -> str:
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(
-        model=model,
-        contents=contents,
-        config=genai.types.GenerateContentConfig(system_instruction=system),
-    )
-    return response.text.strip()
+def summarize(article_body: str, cascade: Cascade) -> tuple[str, str]:
+    """→ (message, modèle utilisé)."""
+    return cascade.generate(_SYSTEM, article_body)
 
 
-def summarize(article_body: str, api_key: str, model: str) -> str:
-    return _generate(_SYSTEM, article_body, api_key, model)
-
-
-def condense_quotes(message: str, api_key: str, model: str, budget: int) -> str:
-    return _generate(_CONDENSE.format(budget=budget), message, api_key, model)
+def condense_quotes(message: str, cascade: Cascade, budget: int) -> tuple[str, str]:
+    """→ (message condensé, modèle utilisé)."""
+    return cascade.generate(_CONDENSE.format(budget=budget), message)

@@ -17,8 +17,10 @@ Démon Python tournant en boucle, packagé en conteneur Docker, déployé sur VP
 
 - **Python** (≥ 3.12)
 - **Docker + docker-compose**, conteneur `restart: unless-stopped`
-- **LLM** : Google Gemini, palier gratuit (`GEMINI_API_KEY`), modèle lu dans
-  `GEMINI_MODEL` (défaut `gemini-4-hydrogen`). SDK `google-genai` — vérifier
+- **LLM** : Google Gemini, palier gratuit (`GEMINI_API_KEY`), **cascade de modèles**
+  (`GEMINI_MODELS`, liste ordonnée, défaut `gemini-4-hydrogen,gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash-lite` ;
+  quotas gratuits : 20 requêtes/jour par modèle, 500 pour le dernier = filet). `cascade.py` : 429 jour →
+  modèle écarté jusqu'au reset ; 429 minute → attente, même modèle ; 503 → suivant sans écarter. SDK `google-genai` — vérifier
   nom/version courants via `ctx7` avant de pinner. Pas de `temperature` (1.0
   recommandé par Google pour Gemini 3+).
 - **Dédup** : SQLite (stdlib `sqlite3`), fichier persisté dans un volume Docker.
@@ -47,6 +49,7 @@ Package `actufoot/`, modules à responsabilité isolée :
     (id, title, slug).
   - contenu d'un article : `GET https://www.footmercato.net/a{id}-{slug}`, extrait
     le `articleBody` du `<script type="application/ld+json">`.
+- `cascade.py` — bascule entre modèles Gemini selon la nature de l'erreur (jour / minute / 503 / 404).
 - `summarizer.py` — résumé Gemini en français, factuel : « • Résumé » (1 à 3
   phrases, la nouveauté seulement) + « • Citations » (toutes les citations
   directes, mot pour mot, auteur = celui qui parle). `condense_quotes` : second
@@ -80,4 +83,4 @@ Package `actufoot/`, modules à responsabilité isolée :
 - `TELEGRAM_CHAT_ID`
 - `GEMINI_API_KEY`
 - `POLL_INTERVAL_MINUTES` (défaut 15)
-- `GEMINI_MODEL` (défaut `gemini-4-hydrogen`)
+- `GEMINI_MODELS` (liste séparée par virgules, défaut : voir Stack)
