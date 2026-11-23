@@ -1,4 +1,5 @@
 """Tests purs (sans réseau) : mise en forme HTML et troncature. Lancer : python test_message.py"""
+from actufoot.footmercato import _is_live
 from actufoot.telegram import MAX_LEN, format_message, truncate_body
 
 # Échappement : titre, corps, URL
@@ -28,4 +29,9 @@ assert len(out) <= 500 and out.endswith("…")
 
 # Déjà court : inchangé
 assert truncate_body("• Résumé : court", 4096) == "• Résumé : court"
+# Détection des directs
+assert _is_live([{"@type": "BreadcrumbList"}, {"@type": "LiveBlogPosting"}])
+assert _is_live([{"@type": "BroadcastEvent"}])
+assert not _is_live([{"@type": "NewsArticle"}, {"@type": "BreadcrumbList"}])
+assert not _is_live([])
 print("OK")

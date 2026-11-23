@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 
 from actufoot import config
-from actufoot.footmercato import fetch_article_body, list_recent_articles
+from actufoot.footmercato import LiveArticle, fetch_article_body, list_recent_articles
 from actufoot.store import init_db, is_seen, mark_seen, seed_seen
 from actufoot.summarizer import condense_quotes, summarize
 from actufoot.telegram import MAX_LEN, format_message, send_message, truncate_body, visible_length
@@ -40,6 +40,14 @@ def build_text(title: str, url: str, article_body: str, cfg: dict) -> str:
     return format_message(title, url, body)
 
 
+def _fetch_body(article_id: str, slug: str) -> str | None:
+    """Corps de l'article, ou None pour un direct (que `retry` ne doit pas rejouer)."""
+    try:
+        return fetch_article_body(article_id, slug)
+    except LiveArticle:
+        return None
+
+
 def run_cycle(conn: sqlite3.Connection, cfg: dict, is_cold: bool) -> None:
     for team_name, team_id in TEAMS:
         try:
@@ -53,7 +61,11 @@ def run_cycle(conn: sqlite3.Connection, cfg: dict, is_cold: bool) -> None:
                     article_id = str(article["id"])
                     if is_seen(conn, article_id):
                         continue
-                    body = retry(lambda: fetch_article_body(article_id, article["slug"]))
+                    body = retry(lambda: _fetch_body(article_id, article["slug"]))
+                    if body is None:
+                        mark_seen(conn, article_id)
+                        log(f"{team_name} — direct ignoré : {article['title']}")
+                        continue
                     url = f"https://www.footmercato.net/a{article_id}-{article['slug']}"
                     text = build_text(article["title"], url, body, cfg)
                     retry(lambda: send_message(cfg["TELEGRAM_BOT_TOKEN"], cfg["TELEGRAM_CHAT_ID"], text))

@@ -70,6 +70,8 @@ Package `actufoot/`, modules à responsabilité isolée :
   retenté au cycle suivant (pas de perte, pas de doublon).
 - **Isolation des erreurs** : try/except par article, par équipe, et autour du
   cycle. La boucle ne meurt jamais — log puis on continue.
+- **Directs ignorés** : une page sans `articleBody` portant un JSON-LD `LiveBlogPosting`/`BroadcastEvent`
+  est marquée vue sans envoi (log d'info). Toute autre page sans `articleBody` reste une erreur retentée.
 - **Timeouts** sur tous les appels HTTP. **Logs sur stdout** (`docker logs`).
 
 ## Variables d'environnement

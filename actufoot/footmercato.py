@@ -22,10 +22,22 @@ def list_recent_articles(team_id: str) -> list[dict]:
     return resp.json()["hydra:member"]
 
 
+class LiveArticle(Exception):
+    """Page de match « en direct commenté » : pas d'articleBody, ignorée définitivement."""
+
+
+_LIVE_TYPES = {"LiveBlogPosting", "BroadcastEvent"}
+
+
+def _is_live(items: list) -> bool:
+    return any(isinstance(i, dict) and i.get("@type") in _LIVE_TYPES for i in items)
+
+
 def fetch_article_body(article_id: str, slug: str) -> str:
     url = f"https://www.footmercato.net/a{article_id}-{slug}"
     resp = requests.get(url, timeout=_TIMEOUT)
     resp.raise_for_status()
+    all_items = []
     for raw in re.findall(
         r'<script[^>]+type="application/ld\+json"[^>]*>(.*?)</script>',
         resp.text,
@@ -33,7 +45,11 @@ def fetch_article_body(article_id: str, slug: str) -> str:
     ):
         data = json.loads(raw)
         items = data if isinstance(data, list) else [data]
+        all_items.extend(items)
         for item in items:
             if isinstance(item, dict) and "articleBody" in item:
                 return item["articleBody"]
+    # Consulté seulement en l'absence d'articleBody : une page normale cassée reste une erreur retentée.
+    if _is_live(all_items):
+        raise LiveArticle(f"a{article_id}-{slug}")
     raise ValueError(f"articleBody introuvable pour a{article_id}-{slug}")
